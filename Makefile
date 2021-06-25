@@ -1,14 +1,17 @@
 CC       = g++
-CFLAGS   = -std=c++14 -Wall -Wextra -Winline -Wshadow -Werror -O3 -DNDEBUG -pedantic  -D_XOPEN_SOURCE=700 
+CFLAGS   = -std=c++14  -O3 -Wall -Winline -Wshadow
 RM       = rm -f
 
 
 .PHONY: all clean
 
-all: mgsolve
+all: lbm cmdparser.o
 
 clean:
-	$(RM) mgsolve
+	$(RM) lbm cmdparser.o
 
-mgsolve: multigrid.cpp
-	$(CC) $(CFLAGS) -o mgsolve $<
+lbm: cmdparser.o lbm.cpp 
+	$(CC) $(CFLAGS) -o lbm cmdparser.o lbm.cpp
+
+cmdparser.o: cmdparser.cpp
+	$(CC) $(CFLAGS) -c $<
