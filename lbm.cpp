@@ -5,9 +5,12 @@
 #include <cmath>
 #include <vector>
 #include <string>
+#include <map>
 #include "cmdparser.h"
 
 using namespace std;
+
+
 
 //TODO: Implement the Latice class and replace the Grid clas with it
 typedef struct Grid
@@ -20,8 +23,11 @@ typedef struct Grid
     vector<vector<int>> cells;
 } Grid;
 
-template<typename T>
-class Lattice
+//Cell Lookup map in order to more transparently access the positions on the cells.
+map<string, int> cell_lookup = {{"C",0},{"N",1},{"S",2},{"W",3},{"E",4},{"NW",5},{"NE",6},{"SW",7},{"SE",8}};
+
+
+template<typename T> class Lattice
 {
     int n_cells_y, n_cells_x;
 
@@ -32,37 +38,50 @@ class Lattice
 public:
     Lattice(int N_y, int N_x): n_cells_y(N_y), n_cells_x(N_x)
     {
-        domain.reserve(n_cells_x);
-        cell_types.reserve(n_cells_x );
-
-        for (int i = 0; i < n_cells_x; i++)
-        {
-            vector<vector<T>> tmp1;
-            tmp1.reserve(n_cells_y);
-            domain[i].push_back(tmp1);
-
-            vector<int> tmp2;
-            tmp2.reserve(n_cells_y);
-            cell_types.push_back(tmp2);
-
-            for(int j = 0; j < n_cells_y; j++)
-            {
-                 vector<T> tmp3(9);
-                 domain[i][j].push_back(tmp3);
-            }
-        }
+        domain = vector<vector<vector<T>>>(n_cells_x, vector<vector<T>>(n_cells_y, vector<T>(9)));
+        cell_types = vector<vector<int>>(n_cells_x, vector<int>(n_cells_y, 0));
     }
 
     //TODO: Introduce parameters for the circle and write method to initialize the Lattice Grid
     void initialize_Latice();
 
-    void put(int, int, T);
-    T get(int, int);
+    void put(int, int, string, T);
+    T get(int, int, string);
     int getX();
     int getY();
-    T &operator()(const int, const int);
+    T &operator()(const int, const int, string);
 };
 
+
+template<typename T> void Lattice<T>::initialize_Latice()
+{
+    //TODO: Introduce parameters for the circle and write method to initialize IMPLEMENTATION
+    return;
+}
+
+template<typename T> void Lattice<T>::put(int x, int y, string q, T value){
+    domain[x][y][cell_lookup[q]] = value;
+}
+
+template<typename T> T Lattice<T>::get(int x, int y, string q)
+{
+    return domain[x][y][cell_lookup[q]];
+}
+
+template<typename T> int Lattice<T>::getX()
+{
+    return n_cells_x;
+}
+
+template<typename T> int Lattice<T>::getY()
+{
+    return n_cells_y;
+}
+
+template<typename T> T &Lattice<T>::operator()(const int x, const int y, string q)
+{
+    return domain[x][y][cell_lookup[q]];
+}
 
 
 //TODO: Use the Latice class to adapt this vtk file writing mehthod. This method should give a basic overview of the writing structure.
@@ -124,5 +143,6 @@ void write_VTK_file(string &filename, Grid *outgrid)
 int main(int argc, char* argv[])
 {
     cout << "Very quiet here..." << endl;
+    
     return 0;
 }
