@@ -33,13 +33,13 @@ template<typename T> class Lattice
 
     vector<vector<vector<T>>> domain;
 
-    vector<vector<int>> cell_types;
+    vector<vector<int>> flag_field;
 
 public:
     Lattice(int N_y, int N_x): n_cells_y(N_y), n_cells_x(N_x)
     {
         domain = vector<vector<vector<T>>>(n_cells_x, vector<vector<T>>(n_cells_y, vector<T>(9)));
-        cell_types = vector<vector<int>>(n_cells_x, vector<int>(n_cells_y, 0));
+        flag_field = vector<vector<int>>(n_cells_x, vector<int>(n_cells_y, 0));
     }
 
     //TODO: Introduce parameters for the circle and write method to initialize the Lattice Grid
@@ -143,6 +143,6 @@ void write_VTK_file(string &filename, Grid *outgrid)
 int main(int argc, char* argv[])
 {
     cout << "Very quiet here..." << endl;
-    
+
     return 0;
 }
