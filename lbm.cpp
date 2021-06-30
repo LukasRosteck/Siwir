@@ -34,6 +34,9 @@ map<string,int> cellType={{"fluid",0},{"boundary",1},{"velocity boundary",2},{"d
 //Method definition for distance of two points 
 double distance(double , double , double , double);
 
+
+//@Patrik
+//TODO: Introduce a swap class and a proper copy constructor for the class, aswell as remove the Templation.
 template<typename T> class Lattice
 {
     int  n_cells_x, n_cells_y;
