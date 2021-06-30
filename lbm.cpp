@@ -10,6 +10,20 @@
 
 using namespace std;
 
+struct Parameters
+{
+    int n_x;
+    int n_y;
+    int timesteps;
+    double u_in;
+    double RE;
+    int sphere_x;
+    int sphere_y;
+    int diameter;
+    string vtk_file_name;
+    int vtk_step;
+
+};
 
 
 //TODO: Implement the Latice class and replace the Grid clas with it
@@ -25,7 +39,10 @@ typedef struct Grid
 
 //Cell Lookup map in order to more transparently access the positions on the cells.
 map<string, int> cell_lookup = {{"C",0},{"N",1},{"S",2},{"W",3},{"E",4},{"NW",5},{"NE",6},{"SW",7},{"SE",8}};
-
+//TODO @Lukas
+map<string,vector<int>> c_q={{"C",vector<int>{0,0}},{"N",vector<int>{0,1}},{"S",vector<int>{0,-1}},{"W",vector<int>{1,0}},{"E",vector<int>{1,0}},{"NW",vector<int>{-1,1}},{"NE",vector<int>{1,1}},{"SW",vector<int>{-1,-1}},{"SE",vector<int>{1,-1}}};
+map<string,double> w_q ={{"C",4.0/9.0},{"N",1.0/9.0},{"S",1.0/9.0},{"W",1.0/9.0},{"E",1.0/9.0},{"NW",1.0/36.0},{"NE",1.0/36.0},{"SW",1.0/36.0},{"SE",1.0/36.0}};
+map<string,int> cellType={{"Fluid",0},{"Boundary",1},{"Velocity Boundary",2},{"Density Boundary",3}};
 
 template<typename T> class Lattice
 {
@@ -52,7 +69,7 @@ public:
     T &operator()(const int, const int, string);
 };
 
-
+//@Patrik
 template<typename T> void Lattice<T>::initialize_Latice()
 {
     //TODO: Introduce parameters for the circle and write method to initialize IMPLEMENTATION
@@ -84,7 +101,8 @@ template<typename T> T &Lattice<T>::operator()(const int x, const int y, string 
 }
 
 
-//TODO: Use the Latice class to adapt this vtk file writing mehthod. This method should give a basic overview of the writing structure.
+//TODO: @Patrik
+//Use the Latice class to adapt this vtk file writing mehthod. This method should give a basic overview of the writing structure.
 //----------------------------------------------------------------
 //Write the given data to a legacy VTK file with the specified filename.
 //In this method the given outfile is completely overwritten.
@@ -137,12 +155,38 @@ void write_VTK_file(string &filename, Grid *outgrid)
     return;
 }
 
+//TODO @Lukas
+double density(Lattice<double> &grid, int x, int y){
+    return 0;
+}
 
+void velocity(Lattice<double> &grid,int x,int y,vector<double> &u){
+    return;
+}
 
+void collideStep(Lattice<double> &grid){
+    return;
+}
+
+//@Patrik
+void borderUpdate(Lattice<double> &grid, double u_in){
+    return;
+}
+
+void streamPullStep(Lattice<double> &inGrid,Lattice<double> &outGrid){
+    return;
+}
+
+//@Lukas
+void readInParameters(Parameters &p){
+    return;
+}
+
+//@Lukas
 //TODO: Read in the parameters and call a to be defined latice method which takes care of the simulation.
 int main(int argc, char* argv[])
 {
     cout << "Very quiet here..." << endl;
-
+    
     return 0;
 }
