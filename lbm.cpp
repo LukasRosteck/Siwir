@@ -93,12 +93,11 @@ template<typename T> void Lattice<T>::initialize_Latice(Parameters *param)
             }
             else
             {
-                //All remaining cells are either regular fluid cells or part of the obstacle
-                //TODO: include the cells where the radius equals the distance or not???? ---In examples the visulalisation without looks better
+                //All remaining cells are either regular fluid cells or part of the obstacle 
                 //Cells that are inside the bounding box of the circle and  need checking
                 if(!(x-1 > bounding_upper_x || y-1 > bounding_upper_y || x-1 < bounding_lower_x || y-1 < bounding_lower_y))
                 {
-                    if(distance((double) x-1, (double) y-1,  (double) param->sphere_x, (double) param->sphere_y) < radius){
+                    if(distance((double) x-0.5, (double) y-0.5,  (double) param->sphere_x, (double) param->sphere_y) <= radius){
                         //domain remains untouched
                         //Flag is set to no-slip
                         flag_field[x][y] = cellType["boundary"];
