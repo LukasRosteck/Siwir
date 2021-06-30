@@ -238,7 +238,27 @@ void borderUpdate(Lattice<double> &grid, double u_in){
     return;
 }
 
-void streamPullStep(Lattice<double> &inGrid,Lattice<double> &outGrid){
+void streamPullStep(Lattice<double> &inGrid, Lattice<double> &outGrid){
+    for (int x = 1; x < inGrid.getX()-1; x++) 
+    {
+        for (int y = 1; y < inGrid.getY()-1; y++)
+        {
+            //Only stream the fluid cells
+            if(inGrid.get_flag(x,y) == cellType["fluid"])
+            {
+                //Pull the values frome the correct positions of the Grid
+                outGrid.put(x,y,"C", inGrid(x, y, "C"));
+                outGrid.put(x,y,"N", inGrid(x, y-1, "N"));
+                outGrid.put(x,y,"E", inGrid(x-1, y, "E"));
+                outGrid.put(x,y,"S", inGrid(x, y+1, "S"));
+                outGrid.put(x,y,"W", inGrid(x+1, y, "W"));
+                outGrid.put(x,y,"NW", inGrid(x+1, y-1, "NW"));
+                outGrid.put(x,y,"NE", inGrid(x-1, y-1, "NE"));
+                outGrid.put(x,y,"SE", inGrid(x-1, y+1, "SE"));
+                outGrid.put(x,y,"SW", inGrid(x+1, y+1, "SW"));
+            }
+        }
+    }
     return;
 }
 
