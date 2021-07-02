@@ -167,7 +167,7 @@ double Lattice<T>::density(int x, int y)
 {
     double val = 0;
     int len = domain[x][y].size();
-    for (int i = 0; 0 < len; i++)
+    for (int i = 0; i < len; i++)
     {
         val += domain[x][y][i];
     }
@@ -185,10 +185,7 @@ void Lattice<T>::velocity(int x, int y, vector<double> &u)
         u[1] += domain[x][y][q->second] * c_q[q->first][1];
     }
 }
-//TODO: Maybe write as Grid functions -> may be better option
-//Method definitions for density and velocity
-double density(Lattice<double> &, int, int);
-void velocity(Lattice<double> &, int, int, vector<double> &);
+
 
 //----------------------------------------------------------------
 //Write the given data to a VTK file with the specified filename and the specified number.
@@ -232,7 +229,7 @@ void write_VTK_file(string filename, int number, Lattice<double> &outGrid, Param
     {
         for (int x = 1; x < outGrid.getX() - 1; x++)
         {
-            outstream << density(outGrid, x, y) << endl;
+            outstream << outGrid.density(x, y) << endl;
         }
     }
     outstream << endl;
@@ -255,18 +252,6 @@ double distance(double x1, double y1, double x2, double y2)
     return sqrt((x1 - x2) * (x1 - x2) + (y1 - y2) * (y1 - y2));
 }
 
-//TODO @Lukas
-double density(Lattice<double> &grid, int x, int y)
-{
-    return 0;
-}
-
-void velocity(Lattice<double> &grid, int x, int y, vector<double> &u)
-{
-    u[0] = 1;
-    u[1] = 0;
-    return;
-}
 
 void collideStep(Lattice<double> &grid, Parameters p)
 {
@@ -295,8 +280,83 @@ void collideStep(Lattice<double> &grid, Parameters p)
 }
 
 //@Patrik
+//TODO: Possibly broken
 void borderUpdate(Lattice<double> &grid, double u_in)
 {
+    //Step 1: north and south boundary
+    for(int x = 0; x < grid.getX(); x++)
+    {
+        //Seperate Corner points
+        if(x == 0)
+        {
+            //Reflect the values 
+             grid.put(x,0, "N", grid(x,1,"S"));
+             grid.put(x,0, "NE", grid(x+1,1,"SW"));
+
+             grid.put(x, grid.getY()-1, "S", grid(x, grid.getY()-2,"N"));
+             grid.put(x, grid.getY()-1, "SE", grid(x+1, grid.getY()-2,"NW"));
+        }
+        else if (x == grid.getX()-1)
+        {
+            //Reflect the values 
+            grid.put(x,0, "N", grid(x,1,"S"));
+            grid.put(x,0, "NW", grid(x-1,1,"SE"));
+
+            grid.put(x, grid.getY()-1, "S", grid(x, grid.getY()-2,"N"));
+            grid.put(x, grid.getY()-1, "SW", grid(x-1, grid.getY()-2,"NE"));
+        }
+        else
+        {
+            //Reflect the values of the fluid cells.
+            grid.put(x,0, "N", grid(x,1,"S"));
+            grid.put(x,0, "NW", grid(x-1,1,"SE"));
+            grid.put(x,0, "NE", grid(x+1,1,"SW"));
+
+            grid.put(x, grid.getY()-1, "S", grid(x, grid.getY()-2,"N"));
+            grid.put(x, grid.getY()-1, "SW", grid(x-1, grid.getY()-2,"NE"));
+            grid.put(x, grid.getY()-1, "SE", grid(x+1, grid.getY()-2,"NW"));
+        }
+    }
+
+    //Step 2: Iterate over domain, find the obstacle cells, and update them
+    //TODO: Maybe optimize this step by storing the location of the obstacle in the initialization step
+    //Also unneccesary values might be shifted along the boundary cells as it is not checked wether we are pulling from fluid or bouindary
+    for (int x = 1; x < grid.getX()-1; x++)
+    {
+        for (int y = 1; y < grid.getY()-1; y++)
+        {
+            //obstacle cell found
+            if(grid.get_flag(x,y) == cellType["boundary"])
+            {
+                grid.put(x, y, "N", grid(x, y+1, "S"));
+                grid.put(x, y, "E", grid(x + 1, y, "W"));
+                grid.put(x, y, "S", grid(x, y - 1, "N"));
+                grid.put(x, y, "W", grid(x - 1, y, "E"));
+
+                grid.put(x, y, "NW", grid(x - 1, y + 1, "SE"));
+                grid.put(x, y, "NE", grid(x + 1, y + 1, "SW"));
+                grid.put(x, y, "SE", grid(x + 1, y - 1, "NW"));
+                grid.put(x, y, "SW", grid(x - 1, y - 1, "NE"));
+            }
+        }
+    }
+
+    //Step 3: west (velocity) and east boundary
+    for (int y = 1; y < grid.getY() - 1; y++)
+    {
+        grid.put(0, y, "E", grid(1, y, "W")-6*w_q["E"]*u_in);
+        grid.put(0, y, "NE", grid(1, y+1, "SW")-6*w_q["NE"]*u_in);
+        grid.put(0, y, "SE", grid(1, y-1, "NW")-6*w_q["SE"]*u_in);
+
+
+        vector<double> u(2);
+        grid.velocity(grid.getX()-1, y, u);
+        grid.put(grid.getX()-1, y, "W", -grid(grid.getX()-1, y , "W") + 2*w_q["W"]*(1+(9.0/2.0)*(c_q["W"][0] * u[0] + c_q["W"][1] * u[1])*(c_q["W"][0] * u[0] + c_q["W"][1] * u[1]) - (3.0/2.0)*(u[0]*u[0] + u[1]*u[1])));
+        grid.put(grid.getX()-1, y, "NW", -grid(grid.getX()-1, y , "NW") + 2*w_q["NW"]*(1+(9.0/2.0)*(c_q["NW"][0] * u[0] + c_q["NW"][1] * u[1])*(c_q["NW"][0] * u[0] + c_q["NW"][1] * u[1]) - (3.0/2.0)*(u[0]*u[0] + u[1]*u[1])));
+        grid.put(grid.getX()-1, y, "SW", -grid(grid.getX()-1, y , "SW") + 2*w_q["SW"]*(1+(9.0/2.0)*(c_q["SW"][0] * u[0] + c_q["SW"][1] * u[1])*(c_q["SW"][0] * u[0] + c_q["SW"][1] * u[1]) - (3.0/2.0)*(u[0]*u[0] + u[1]*u[1])));
+   
+    }
+
     return;
 }
 
@@ -357,6 +417,21 @@ int main(int argc, char *argv[])
 
     Lattice<double> l(p.n_x + 2, p.n_y + 2);
     l.initialize_Latice(&p);
-    write_VTK_file(p.vtk_file_name, 1, l, &p);
+    Lattice<double> l_cpy = l;
+    
+    //Just for testig
+    for (int t = 0, vtk = 1; t < p.timesteps; t++, vtk++)
+    {
+        collideStep(l,p);
+        borderUpdate(l, p.u_in);
+        streamPullStep(l,l_cpy);
+        swap(l,l_cpy);
+        if(vtk == p.vtk_step)
+        {
+            vtk = 1;
+            write_VTK_file(p.vtk_file_name, t, l, &p);
+        }
+        cout << t << endl;
+    }
     return 0;
 }
