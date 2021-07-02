@@ -1,0 +1,6 @@
+timesteps 50000
+uin 0.02
+Re 100
+vtk_file Re100_wing_
+vtk_step 500
+geometry wing.pgm
