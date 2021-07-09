@@ -6,6 +6,7 @@
 #include <vector>
 #include <string>
 #include <map>
+#include <iomanip>
 #include "cmdparser.h"
 
 using namespace std;
@@ -30,7 +31,8 @@ struct Parameters
 map<string, int> cell_lookup = {{"C", 0}, {"N", 1}, {"S", 2}, {"W", 3}, {"E", 4}, {"NW", 5}, {"NE", 6}, {"SW", 7}, {"SE", 8}};
 map<string, vector<int>> c_q = {{"C", vector<int>{0, 0}}, {"N", vector<int>{0, 1}}, {"S", vector<int>{0, -1}}, {"W", vector<int>{-1, 0}}, {"E", vector<int>{1, 0}}, {"NW", vector<int>{-1, 1}}, {"NE", vector<int>{1, 1}}, {"SW", vector<int>{-1, -1}}, {"SE", vector<int>{1, -1}}};
 map<string, double> w_q = {{"C", 4.0 / 9.0}, {"N", 1.0 / 9.0}, {"S", 1.0 / 9.0}, {"W", 1.0 / 9.0}, {"E", 1.0 / 9.0}, {"NW", 1.0 / 36.0}, {"NE", 1.0 / 36.0}, {"SW", 1.0 / 36.0}, {"SE", 1.0 / 36.0}};
-map<string, int> cellType = {{"fluid", 0}, {"boundary", 1}, {"velocity boundary", 2 }, {"density boundary", 3}};
+
+map<string, int> cellType = {{"fluid", 0}, {"boundary", 1}, {"velocity boundary", 2}, {"density boundary", 3}};
 
 //Method definition for distance of two points
 double distance(double, double, double, double);
@@ -84,6 +86,10 @@ void Lattice<T>::initialize_Latice(Parameters *param)
                 //domain remains untouched
                 //Flag is set to no-slip
                 flag_field[x][y] = cellType["boundary"];
+                for (auto q = cell_lookup.begin(); q != cell_lookup.end(); q++)
+                {
+                    domain[x][y][q->second] =.0100;
+                }
             }
             //Cells which are on the left bound
             else if (x == 0)
@@ -98,6 +104,10 @@ void Lattice<T>::initialize_Latice(Parameters *param)
                 //domain remains untouched
                 //Flag is set to desity
                 flag_field[x][y] = cellType["density boundary"];
+                for (auto q = cell_lookup.begin(); q != cell_lookup.end(); q++)
+                {
+                    domain[x][y][q->second] = w_q[q->first];
+                }
             }
             else
             {
@@ -110,8 +120,9 @@ void Lattice<T>::initialize_Latice(Parameters *param)
                         //domain remains untouched
                         //Flag is set to no-slip
                         flag_field[x][y] = cellType["boundary"];
-                        for(int i =0;i<9;i++){
-                            domain[x][y][i]=100;
+                        for (int i = 0; i < 9; i++)
+                        {
+                            domain[x][y][i] = .0100;
                         }
                         continue;
                     }
@@ -183,12 +194,11 @@ void Lattice<T>::velocity(int x, int y, vector<double> &u)
     u[1] = 0;
     for (auto q = cell_lookup.begin(); q != cell_lookup.end(); q++)
     {
-        
+
         u[0] += domain[x][y][q->second] * c_q[q->first][0];
         u[1] += domain[x][y][q->second] * c_q[q->first][1];
     }
 }
-
 
 //----------------------------------------------------------------
 //Write the given data to a VTK file with the specified filename and the specified number.
@@ -207,18 +217,18 @@ void write_VTK_file(string filename, int number, Lattice<double> &outGrid, Param
               << "SiWiRVisFile" << endl
               << "ASCII" << endl
               << "DATASET STRUCTURED_POINTS" << endl
-              << "DIMENSIONS " << param->n_x << " " << param->n_y << " 1" << endl
+              << "DIMENSIONS " << param->n_x + 2 << " " << param->n_y + 2 << " 1" << endl
               << "ORIGIN 0 0 0" << endl
               << "SPACING 1 1 1" << endl
-              << "POINT_DATA " << param->n_x * param->n_y << endl;
+              << "POINT_DATA " << (param->n_x + 2) * (param->n_y + 2) << endl;
     outstream << endl;
 
     outstream << "SCALARS flags unsigned_int 1" << endl;
     outstream << "LOOKUP_TABLE default" << endl;
     //Write all flags
-    for (int y = 1; y < outGrid.getY() - 1; y++)
+    for (int y = 0; y < outGrid.getY(); y++)
     {
-        for (int x = 1; x < outGrid.getX() - 1; x++)
+        for (int x = 0; x < outGrid.getX(); x++)
         {
             outstream << outGrid.get_flag(x, y) << endl;
         }
@@ -228,9 +238,9 @@ void write_VTK_file(string filename, int number, Lattice<double> &outGrid, Param
     outstream << "SCALARS density double 1" << endl;
     outstream << "LOOKUP_TABLE default" << endl;
     //Write all densities
-    for (int y = 1; y < outGrid.getY() - 1; y++)
+    for (int y = 0; y < outGrid.getY(); y++)
     {
-        for (int x = 1; x < outGrid.getX() - 1; x++)
+        for (int x = 0; x < outGrid.getX(); x++)
         {
             outstream << outGrid.density(x, y) << endl;
         }
@@ -238,12 +248,12 @@ void write_VTK_file(string filename, int number, Lattice<double> &outGrid, Param
     outstream << endl;
 
     outstream << "VECTORS velocity double" << endl;
-    for (int y = 1; y < outGrid.getY() - 1; y++)
+    for (int y = 0; y < outGrid.getY(); y++)
     {
-        for (int x = 1; x < outGrid.getX() - 1; x++)
+        for (int x = 0; x < outGrid.getX(); x++)
         {
             vector<double> u(2);
-            outGrid.velocity(x,y,u);   
+            outGrid.velocity(x, y, u);
             outstream << u[0] << " " << u[1] << " 0" << endl;
         }
     }
@@ -255,12 +265,11 @@ double distance(double x1, double y1, double x2, double y2)
     return sqrt((x1 - x2) * (x1 - x2) + (y1 - y2) * (y1 - y2));
 }
 
-
 void collideStep(Lattice<double> &grid, Parameters *p)
 {
-    for (int x = 1; x <= p->n_x; x++)
+    for (int x = 1; x < grid.getX(); x++)
     {
-        for (int y = 1; y <= p->n_y; y++)
+        for (int y = 1; y < grid.getY(); y++)
         {
             if (grid.get_flag(x, y) == cellType["fluid"])
             {
@@ -270,13 +279,12 @@ void collideStep(Lattice<double> &grid, Parameters *p)
                 for (auto q = cell_lookup.begin(); q != cell_lookup.end(); q++)
                 {
                     double vectorProduct = u[0] * c_q[q->first][0] + u[1] * c_q[q->first][1];
-                    
+
                     double uSquared = u[0] * u[0] + u[1] * u[1];
-                    double f_eq = w_q[q->first] * (density + 3.0 * vectorProduct + 9.0 / 2.0 * vectorProduct * vectorProduct - 3.0 / 2.0 * uSquared);
+                    double f_eq = w_q[q->first] * (density + 3.0 * vectorProduct + (9.0 / 2.0) * vectorProduct * vectorProduct - (3.0 / 2.0) * uSquared);
                     double oldVal = grid.get(x, y, q->first);
                     double newVal = oldVal - (1.0 / p->tau) * (oldVal - f_eq);
                     grid.put(x, y, q->first, newVal);
-                    
                 }
             }
         }
@@ -286,40 +294,40 @@ void collideStep(Lattice<double> &grid, Parameters *p)
 
 //@Patrik
 //TODO: Possibly broken
-void borderUpdate(Lattice<double> &grid, double u_in,Parameters *param)
+void borderUpdate(Lattice<double> &grid, double u_in, Parameters *param)
 {
     //Step 1: north and south boundary
-    for(int x = 0; x < grid.getX(); x++)
+    for (int x = 0; x < grid.getX(); x++)
     {
         //Seperate Corner points
-        if(x == 0)
+        if (x == 0)
         {
-            //Reflect the values 
-             //grid.put(x,0, "N", grid(x,1,"S"));
-             grid.put(x,0, "NE", grid(x+1,1,"SW"));
-
-             //grid.put(x, grid.getY()-1, "S", grid(x, grid.getY()-2,"N"));
-             grid.put(x, grid.getY()-1, "SE", grid(x+1, grid.getY()-2,"NW"));
-        }
-        else if (x == grid.getX()-1)
-        {
-            //Reflect the values 
+            //Reflect the values
             //grid.put(x,0, "N", grid(x,1,"S"));
-            grid.put(x,0, "NW", grid(x-1,1,"SE"));
+            grid.put(x, 0, "NE", grid(x + 1, 1, "SW"));
 
             //grid.put(x, grid.getY()-1, "S", grid(x, grid.getY()-2,"N"));
-            grid.put(x, grid.getY()-1, "SW", grid(x-1, grid.getY()-2,"NE"));
+            grid.put(x, grid.getY() - 1, "SE", grid(x + 1, grid.getY() - 2, "NW"));
+        }
+        else if (x == grid.getX() - 1)
+        {
+            //Reflect the values
+            //grid.put(x,0, "N", grid(x,1,"S"));
+            grid.put(x, 0, "NW", grid(x - 1, 1, "SE"));
+
+            //grid.put(x, grid.getY()-1, "S", grid(x, grid.getY()-2,"N"));
+            grid.put(x, grid.getY() - 1, "SW", grid(x - 1, grid.getY() - 2, "NE"));
         }
         else
         {
             //Reflect the values of the fluid cells.
-            grid.put(x,0, "N", grid(x,1,"S"));
-            grid.put(x,0, "NW", grid(x-1,1,"SE"));
-            grid.put(x,0, "NE", grid(x+1,1,"SW"));
+            grid.put(x, 0, "N", grid(x, 1, "S"));
+            grid.put(x, 0, "NW", grid(x - 1, 1, "SE"));
+            grid.put(x, 0, "NE", grid(x + 1, 1, "SW"));
 
-            grid.put(x, grid.getY()-1, "S", grid(x, grid.getY()-2,"N"));
-            grid.put(x, grid.getY()-1, "SW", grid(x-1, grid.getY()-2,"NE"));
-            grid.put(x, grid.getY()-1, "SE", grid(x+1, grid.getY()-2,"NW"));
+            grid.put(x, grid.getY() - 1, "S", grid(x, grid.getY() - 2, "N"));
+            grid.put(x, grid.getY() - 1, "SW", grid(x - 1, grid.getY() - 2, "NE"));
+            grid.put(x, grid.getY() - 1, "SE", grid(x + 1, grid.getY() - 2, "NW"));
         }
     }
 
@@ -329,14 +337,14 @@ void borderUpdate(Lattice<double> &grid, double u_in,Parameters *param)
     double radius = param->diameter / 2.0;
     int bounding_upper_x = ceil(param->sphere_x + radius), bounding_upper_y = ceil(param->sphere_y + radius);
     int bounding_lower_x = floor(param->sphere_x - radius), bounding_lower_y = floor(param->sphere_y - radius);
-    for (int x = bounding_lower_x; x <bounding_upper_x; x++)
+     for (int x = 1; x < grid.getX()-1; x++)
     {
-        for (int y = bounding_lower_y; y < bounding_upper_y; y++)
+        for (int y = 1; y < grid.getY()-1; y++)
         {
             //obstacle cell found
-            if(grid.get_flag(x,y) == cellType["boundary"])
+            if (grid.get_flag(x, y) == cellType["boundary"])
             {
-                grid.put(x, y, "N", grid(x, y+1, "S"));
+                grid.put(x, y, "N", grid(x, y + 1, "S"));
                 grid.put(x, y, "E", grid(x + 1, y, "W"));
                 grid.put(x, y, "S", grid(x, y - 1, "N"));
                 grid.put(x, y, "W", grid(x - 1, y, "E"));
@@ -352,17 +360,15 @@ void borderUpdate(Lattice<double> &grid, double u_in,Parameters *param)
     //Step 3: west (velocity) and east boundary
     for (int y = 1; y < grid.getY() - 1; y++)
     {
-        grid.put(0, y, "E", grid(1, y, "W")-6*w_q["E"]*u_in);
-        grid.put(0, y, "NE", grid(1, y+1, "SW")-6*w_q["NE"]*u_in);
-        grid.put(0, y, "SE", grid(1, y-1, "NW")-6*w_q["SE"]*u_in);
-
+        grid.put(0, y, "E", grid(1, y, "W") - 6 * w_q["E"] * u_in);
+        grid.put(0, y, "NE", grid(1, y + 1, "SW") - 6 * w_q["NE"] * u_in);
+        grid.put(0, y, "SE", grid(1, y - 1, "NW") - 6 * w_q["SE"] * u_in);
 
         vector<double> u(2);
-        grid.velocity(grid.getX()-1, y, u);
-        grid.put(grid.getX()-1, y, "W", -grid(grid.getX()-1, y , "W") + 2*w_q["W"]*(1+(9.0/2.0)*(c_q["W"][0] * u[0] + c_q["W"][1] * u[1])*(c_q["W"][0] * u[0] + c_q["W"][1] * u[1]) - (3.0/2.0)*(u[0]*u[0] + u[1]*u[1])));
-        grid.put(grid.getX()-1, y, "NW", -grid(grid.getX()-1, y+1 , "NW") + 2*w_q["NW"]*(1+(9.0/2.0)*(c_q["NW"][0] * u[0] + c_q["NW"][1] * u[1])*(c_q["NW"][0] * u[0] + c_q["NW"][1] * u[1]) - (3.0/2.0)*(u[0]*u[0] + u[1]*u[1])));
-        grid.put(grid.getX()-1, y, "SW", -grid(grid.getX()-1, y-1 , "SW") + 2*w_q["SW"]*(1+(9.0/2.0)*(c_q["SW"][0] * u[0] + c_q["SW"][1] * u[1])*(c_q["SW"][0] * u[0] + c_q["SW"][1] * u[1]) - (3.0/2.0)*(u[0]*u[0] + u[1]*u[1])));
-   
+        grid.velocity(grid.getX() - 1, y, u);
+        grid.put(grid.getX() - 1, y, "W", -grid(grid.getX() - 2, y, "E") + 2 * w_q["W"] * (1 + (9.0 / 2.0) * (c_q["W"][0] * u[0] + c_q["W"][1] * u[1]) * (c_q["W"][0] * u[0] + c_q["W"][1] * u[1]) - (3.0 / 2.0) * (u[0] * u[0] + u[1] * u[1])));
+        grid.put(grid.getX() - 1, y, "NW", -grid(grid.getX() - 2, y+1, "SE") + 2 * w_q["NW"] * (1 + (9.0 / 2.0) * (c_q["NW"][0] * u[0] + c_q["NW"][1] * u[1]) * (c_q["NW"][0] * u[0] + c_q["NW"][1] * u[1]) - (3.0 / 2.0) * (u[0] * u[0] + u[1] * u[1])));
+        grid.put(grid.getX() - 1, y, "SW", -grid(grid.getX() - 2, y-1, "NE") + 2 * w_q["SW"] * (1 + (9.0 / 2.0) * (c_q["SW"][0] * u[0] + c_q["SW"][1] * u[1]) * (c_q["SW"][0] * u[0] + c_q["SW"][1] * u[1]) - (3.0 / 2.0) * (u[0] * u[0] + u[1] * u[1])));
     }
 
     return;
@@ -379,14 +385,14 @@ void streamPullStep(Lattice<double> &inGrid, Lattice<double> &outGrid)
             {
                 //Pull the values frome the correct positions of the Grid
                 outGrid.put(x, y, "C", inGrid(x, y, "C"));
-                outGrid.put(x, y, "N", inGrid(x, y + 1, "N"));
-                outGrid.put(x, y, "E", inGrid(x + 1, y, "E"));
-                outGrid.put(x, y, "S", inGrid(x, y - 1, "S"));
-                outGrid.put(x, y, "W", inGrid(x - 1, y, "W"));
-                outGrid.put(x, y, "NW", inGrid(x - 1, y + 1, "NW"));
-                outGrid.put(x, y, "NE", inGrid(x + 1, y + 1, "NE"));
-                outGrid.put(x, y, "SE", inGrid(x + 1, y - 1, "SE"));
-                outGrid.put(x, y, "SW", inGrid(x - 1, y - 1, "SW"));
+                outGrid.put(x, y, "N", inGrid(x, y - 1, "N"));
+                outGrid.put(x, y, "E", inGrid(x - 1, y, "E"));
+                outGrid.put(x, y, "S", inGrid(x, y + 1, "S"));
+                outGrid.put(x, y, "W", inGrid(x + 1, y, "W"));
+                outGrid.put(x, y, "NW", inGrid(x + 1, y - 1, "NW"));
+                outGrid.put(x, y, "NE", inGrid(x - 1, y - 1, "NE"));
+                outGrid.put(x, y, "SE", inGrid(x - 1, y + 1, "SE"));
+                outGrid.put(x, y, "SW", inGrid(x + 1, y + 1, "SW"));
             }
         }
     }
@@ -410,11 +416,47 @@ void readInParameters(Parameters &p, string fileName)
 
     file >> s >> p.vtk_file_name;
     file >> s >> p.vtk_step;
-    p.ny = p.u_in * p.n_y  / p.RE;
+    p.ny = p.u_in * p.n_y / p.RE;
     p.tau = 3 * (p.ny) + 0.5;
     file.close();
 }
-
+void copy(Lattice<double> &A, Lattice<double> &B)
+{
+    int lenX = A.getX();
+    int lenY = A.getY();
+    for (int x = 0; x < lenX; x++)
+    {
+        for (int y = 0; y < lenY; y++)
+        {
+            for (auto q = cell_lookup.begin(); q != cell_lookup.end(); q++)
+            {
+                A.put(x,y,q->first,B.get(x,y,q->first));
+            }
+        }
+    }
+}
+void printGrid(Lattice<double> &l){
+    cout << fixed;
+    cout << setprecision(5);
+    for(int y=l.getY()-1;y>=0;y--){
+        for(int i=0;i<3;i++){
+            for(int x =0;x<l.getX();x++){
+                if(i==0){
+                    cout <<"|"<< l(x,y,"NW") << " "<<l(x,y,"N") << " "<<l(x,y,"NE") << "|";
+                }
+                if(i==1){
+                    cout <<"|"<< l(x,y,"W") << " "<<l(x,y,"C") << " "<<l(x,y,"E") << "|";
+                }
+                
+                if(i==2){
+                    cout <<"|"<< l(x,y,"SW") << " "<<l(x,y,"S") << " "<<l(x,y,"SE") << "|";
+                }
+            }
+            cout <<endl;
+        }
+        cout <<endl;
+    }
+}
 //@Lukas
 //TODO: Read in the parameters and call a to be defined latice method which takes care of the simulation.
 int main(int argc, char *argv[])
@@ -422,29 +464,30 @@ int main(int argc, char *argv[])
     string fileName = argv[1];
     Parameters p;
     readInParameters(p, fileName);
-   
-   
+
     Lattice<double> l(p.n_x + 2, p.n_y + 2);
     l.initialize_Latice(&p);
-    Lattice<double> l_cpy = l;
-    
-    
+    Lattice<double> l_cpy(p.n_x + 2, p.n_y + 2);
+    l_cpy.initialize_Latice(&p);
     //Just for testig
-    int index=0;
-   
+    int index = 0;
+    write_VTK_file(p.vtk_file_name, index, l, &p);
+    index++;
     for (int t = 0, vtk = 1; t < p.timesteps; t++, vtk++)
     {
         collideStep(l,&p);
-        borderUpdate(l, p.u_in,&p);
-        streamPullStep(l,l_cpy);
-        swap(l,l_cpy);
         
-        if(t%p.vtk_step ==0||index==0)
+        borderUpdate(l, p.u_in, &p);
+        copy(l_cpy, l);
+        streamPullStep(l, l_cpy);
+        copy(l, l_cpy);
+        
+        if (t % p.vtk_step == 0 || index == 0)
         {
             vtk = 1;
             write_VTK_file(p.vtk_file_name, index, l, &p);
             index++;
-            cout <<index<<endl;
+            cout << index << endl;
         }
     }
     return 0;
