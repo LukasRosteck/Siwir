@@ -29,7 +29,7 @@ struct Parameters
 
 //Cell Lookup map in order to more transparently access the positions on the cells.
 map<string, int> cell_lookup = {{"C", 0}, {"N", 1}, {"S", 2}, {"W", 3}, {"E", 4}, {"NW", 5}, {"NE", 6}, {"SW", 7}, {"SE", 8}};
-map<string, vector<int>> c_q = {{"C", vector<int>{0, 0}}, {"N", vector<int>{0, 1}}, {"S", vector<int>{0, -1}}, {"W", vector<int>{-1, 0}}, {"E", vector<int>{1, 0}}, {"NW", vector<int>{-1, 1}}, {"NE", vector<int>{1, 1}}, {"SW", vector<int>{-1, -1}}, {"SE", vector<int>{1, -1}}};
+map<string, vector<int>> c_q = {{"C", vector<int>{0, 0}}, {"N", vector<int>{0, 1}}, {"S", vector<int>{0, -1}}, {"W", vector<int>{1, 0}}, {"E", vector<int>{-1, 0}}, {"NW", vector<int>{1, 1}}, {"NE", vector<int>{-1, 1}}, {"SW", vector<int>{1, -1}}, {"SE", vector<int>{-1, -1}}};
 map<string, double> w_q = {{"C", 4.0 / 9.0}, {"N", 1.0 / 9.0}, {"S", 1.0 / 9.0}, {"W", 1.0 / 9.0}, {"E", 1.0 / 9.0}, {"NW", 1.0 / 36.0}, {"NE", 1.0 / 36.0}, {"SW", 1.0 / 36.0}, {"SE", 1.0 / 36.0}};
 
 map<string, int> cellType = {{"fluid", 0}, {"boundary", 1}, {"velocity boundary", 2}, {"density boundary", 3}};
@@ -337,9 +337,9 @@ void borderUpdate(Lattice<double> &grid, double u_in, Parameters *param)
     double radius = param->diameter / 2.0;
     int bounding_upper_x = ceil(param->sphere_x + radius), bounding_upper_y = ceil(param->sphere_y + radius);
     int bounding_lower_x = floor(param->sphere_x - radius), bounding_lower_y = floor(param->sphere_y - radius);
-     for (int x = 1; x < grid.getX()-1; x++)
+     for (int x = bounding_lower_x-10; x < bounding_upper_x+10; x++)
     {
-        for (int y = 1; y < grid.getY()-1; y++)
+        for (int y = bounding_lower_y-10; y < bounding_upper_y+10; y++)
         {
             //obstacle cell found
             if (grid.get_flag(x, y) == cellType["boundary"])
@@ -360,15 +360,16 @@ void borderUpdate(Lattice<double> &grid, double u_in, Parameters *param)
     //Step 3: west (velocity) and east boundary
     for (int y = 1; y < grid.getY() - 1; y++)
     {
-        grid.put(0, y, "E", grid(1, y, "W") - 6 * w_q["E"] * u_in);
-        grid.put(0, y, "NE", grid(1, y + 1, "SW") - 6 * w_q["NE"] * u_in);
-        grid.put(0, y, "SE", grid(1, y - 1, "NW") - 6 * w_q["SE"] * u_in);
+        grid.put(0, y, "E", grid(1, y, "W") + 6 * w_q["E"] * u_in);
+        grid.put(0, y, "NE", grid(1, y + 1, "SW") + 6 * w_q["NE"] * u_in);
+        grid.put(0, y, "SE", grid(1, y - 1, "NW") + 6 * w_q["SE"] * u_in);
 
-        vector<double> u(2);
+        /*vector<double> u(2);
         grid.velocity(grid.getX() - 1, y, u);
-        grid.put(grid.getX() - 1, y, "W", -grid(grid.getX() - 2, y, "E") + 2 * w_q["W"] * (1 + (9.0 / 2.0) * (c_q["W"][0] * u[0] + c_q["W"][1] * u[1]) * (c_q["W"][0] * u[0] + c_q["W"][1] * u[1]) - (3.0 / 2.0) * (u[0] * u[0] + u[1] * u[1])));
-        grid.put(grid.getX() - 1, y, "NW", -grid(grid.getX() - 2, y+1, "SE") + 2 * w_q["NW"] * (1 + (9.0 / 2.0) * (c_q["NW"][0] * u[0] + c_q["NW"][1] * u[1]) * (c_q["NW"][0] * u[0] + c_q["NW"][1] * u[1]) - (3.0 / 2.0) * (u[0] * u[0] + u[1] * u[1])));
-        grid.put(grid.getX() - 1, y, "SW", -grid(grid.getX() - 2, y-1, "NE") + 2 * w_q["SW"] * (1 + (9.0 / 2.0) * (c_q["SW"][0] * u[0] + c_q["SW"][1] * u[1]) * (c_q["SW"][0] * u[0] + c_q["SW"][1] * u[1]) - (3.0 / 2.0) * (u[0] * u[0] + u[1] * u[1])));
+        grid.put(grid.getX() - 1, y, "W", -grid(grid.getX() - 1, y, "W") + 2 * w_q["W"] * (1 + (9.0 / 2.0) * (c_q["W"][0] * u[0] + c_q["W"][1] * u[1]) * (c_q["W"][0] * u[0] + c_q["W"][1] * u[1]) - (3.0 / 2.0) * (u[0] * u[0] + u[1] * u[1])));
+        grid.put(grid.getX() - 1, y, "NW", -grid(grid.getX() - 1, y, "NW") + 2 * w_q["NW"] * (1 + (9.0 / 2.0) * (c_q["NW"][0] * u[0] + c_q["NW"][1] * u[1]) * (c_q["NW"][0] * u[0] + c_q["NW"][1] * u[1]) - (3.0 / 2.0) * (u[0] * u[0] + u[1] * u[1])));
+        grid.put(grid.getX() - 1, y, "SW", -grid(grid.getX() - 1, y, "SW") + 2 * w_q["SW"] * (1 + (9.0 / 2.0) * (c_q["SW"][0] * u[0] + c_q["SW"][1] * u[1]) * (c_q["SW"][0] * u[0] + c_q["SW"][1] * u[1]) - (3.0 / 2.0) * (u[0] * u[0] + u[1] * u[1])));
+        */
     }
 
     return;
