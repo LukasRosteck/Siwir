@@ -5,13 +5,10 @@ RM       = rm -f
 
 .PHONY: all clean
 
-all: lbm cmdparser.o
+all: lbm
 
 clean:
-	$(RM) lbm cmdparser.o
+	$(RM) lbm 
 
-lbm: cmdparser.o lbm.cpp 
-	$(CC) $(CFLAGS) -o lbm cmdparser.o lbm.cpp
-
-cmdparser.o: cmdparser.cpp
-	$(CC) $(CFLAGS) -c $<
+lbm: lbm.cpp 
+	$(CC) $(CFLAGS) -o lbm lbm.cpp

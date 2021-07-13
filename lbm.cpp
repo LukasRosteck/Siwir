@@ -7,10 +7,12 @@
 #include <string>
 #include <map>
 #include <iomanip>
-#include "cmdparser.h"
 
 using namespace std;
 
+//----------------------------------------------------------------
+//Struct for storing the defining parameters of read in from the parameter file.
+//----------------------------------------------------------------
 struct Parameters
 {
     int n_x;
@@ -27,8 +29,11 @@ struct Parameters
     double tau;
 };
 
+//----------------------------------------------------------------
+//Enumerations to identify the type and directions of a single cell.
+//Maps to map direction specific properties.
+//----------------------------------------------------------------
 
-//Framework to identify the type and directions of a single cell
 enum cellType {fluid, boundary, velocity_boundary, density_boundary};
 
 enum direction {C, N, E, S, W, NW, NE, SW, SE};
@@ -39,13 +44,18 @@ map<direction, double> w_q = {{C, 4.0 / 9.0}, {N, 1.0 / 9.0}, {S, 1.0 / 9.0}, {W
 //Method definition for distance of two points
 double distance(double, double, double, double);
 
+//--------------------------------------------------------------
 //Class representing teh Lattice Grid and all its neccessary information
+//----------------------------------------------------------------
 class Lattice
 {
+    //Number of cells including the border helper cells.
     int n_cells_x, n_cells_y;
 
+    //Vector to store the domain with the directions of all cells.
     vector<vector<vector<double>>> domain;
 
+    //Stores the flag for each cell in order to identify the type of cell.
     vector<vector<int>> flag_field;
 
 public:
@@ -67,7 +77,7 @@ public:
     double &operator()(const int, const int, direction);
 };
 
-
+//Initialize the Lattice grid with all the according falg values according to the parameter struct.
 void Lattice::initialize_Latice(Parameters *param)
 {
     //Calculate the "bounding box of the circle"
@@ -138,6 +148,9 @@ void Lattice::initialize_Latice(Parameters *param)
     return;
 }
 
+//----------------------------------------------------------------
+//Getter and setter functions for the lattice grid
+//----------------------------------------------------------------
 
 void Lattice::put(int x, int y, direction q, double value)
 {
@@ -169,6 +182,7 @@ double &Lattice::operator()(const int x, const int y, direction q)
     return domain[x][y][q];
 }
 
+//Calculate the density of a given lattice cell
 double Lattice::density(int x, int y)
 {
     double val = 0;
@@ -179,6 +193,7 @@ double Lattice::density(int x, int y)
     return val;
 }
 
+//Calculate the velocity of a given latice cell and store it in the given 2d-vector
 void Lattice::velocity(int x, int y, vector<double> &u)
 {
     //Initialize the given velocity vector to 0
@@ -253,17 +268,24 @@ void write_VTK_file(string filename, int number, Lattice &outGrid, Parameters *p
     return;
 }
 
+//----------------------------------------------------------------
+//Distance funciton for two points
+//----------------------------------------------------------------
 double distance(double x1, double y1, double x2, double y2)
 {
     return sqrt((x1 - x2) * (x1 - x2) + (y1 - y2) * (y1 - y2));
 }
 
+//--------------------------------------------------------------
+//Colide step for the lattice Grid.
+//--------------------------------------------------------------
 void collideStep(Lattice &grid, Parameters *p)
 {
     for (int x = 1; x < grid.getX(); x++)
     {
         for (int y = 1; y < grid.getY(); y++)
         {
+            //Iterate over all fluid cells and apply the given collide formula
             if (grid.get_flag(x, y) == fluid)
             {
                 double density = grid.density(x, y);
@@ -285,7 +307,9 @@ void collideStep(Lattice &grid, Parameters *p)
     return;
 }
 
+//----------------------------------------------------------------
 //Method to update the helping border cells and the obstacle cells of the domain
+//----------------------------------------------------------------
 void borderUpdate(Lattice &grid, double u_in, Parameters *param)
 {
     //Step 1: north and south boundary
@@ -346,10 +370,13 @@ void borderUpdate(Lattice &grid, double u_in, Parameters *param)
     //Step 3: west (velocity) and east boundary
     for (int y = 1; y < grid.getY() - 1; y++)
     {
+        //Calculate new values for the west boundary using the given update rules
         grid.put(0, y, E, grid(1, y, W) + 6 * w_q[E] * u_in);
         grid.put(0, y, NE, grid(1, y + 1, SW) + 6 * w_q[NE] * u_in);
         grid.put(0, y, SE, grid(1, y - 1, NW) + 6 * w_q[SE] * u_in);
 
+
+        //Calculate the new values for the east boundary using the given update rules
         vector<double> u(2);
         grid.velocity(grid.getX() - 1, y, u);
 
@@ -367,6 +394,10 @@ void borderUpdate(Lattice &grid, double u_in, Parameters *param)
     return;
 }
 
+
+//----------------------------------------------------------------
+//Stream pull step, updating all the fluid cells one timestep using a pulling approach.
+//----------------------------------------------------------------
 void streamPullStep(Lattice &inGrid, Lattice &outGrid)
 {
     for (int x = 1; x < inGrid.getX() - 1; x++)
@@ -392,7 +423,9 @@ void streamPullStep(Lattice &inGrid, Lattice &outGrid)
     return;
 }
 
-
+//----------------------------------------------------------------
+//Read in the parameters for the given parameter file
+//----------------------------------------------------------------
 void readInParameters(Parameters &p, string fileName)
 {
     ifstream file;
@@ -413,6 +446,10 @@ void readInParameters(Parameters &p, string fileName)
     p.tau = 3 * (p.ny) + 0.5;
     file.close();
 }
+
+//----------------------------------------------------------------
+//Swap the domain data of two lattice grids.
+//----------------------------------------------------------------
 void swap_Lattice(Lattice &A, Lattice &B)
 {
     int lenX = A.getX();
@@ -428,41 +465,26 @@ void swap_Lattice(Lattice &A, Lattice &B)
         }
     }
 }
-void printGrid(Lattice &l){
-    cout << fixed;
-    cout << setprecision(5);
-    for(int y=l.getY()-1;y>=0;y--){
-        for(int i=0;i<3;i++){
-            for(int x =0;x<l.getX();x++){
-                if(i==0){
-                    cout <<"|"<< l(x,y,NW) << " "<< l(x,y,N) << " "<< l(x,y,NE) << "|";
-                }
-                if(i==1){
-                    cout <<"|"<< l(x,y,W) << " "<<l(x,y,C) << " "<<l(x,y,E) << "|";
-                }
-                
-                if(i==2){
-                    cout <<"|"<< l(x,y,SW) << " "<<l(x,y,S) << " "<<l(x,y,SE) << "|";
-                }
-            }
-            cout <<endl;
-        }
-        cout <<endl;
-    }
-}
 
 
 int main(int argc, char *argv[])
 {
+    if(argc != 2) {
+        cout << "Usage: ./lbm params.dat" << endl;
+        return -1;
+    }
+
     string fileName = argv[1];
     Parameters p;
     readInParameters(p, fileName);
 
+    //Initialize the two lattice grids
     Lattice l(p.n_x + 2, p.n_y + 2);
     l.initialize_Latice(&p);
     Lattice l_cpy(p.n_x + 2, p.n_y + 2);
     l_cpy.initialize_Latice(&p);
-    //Just for testig
+    
+    //Iterate for the neccessary ammount of time and create the output files in the given intervall
     int index = 0;
     write_VTK_file(p.vtk_file_name, index, l, &p);
     index++;
