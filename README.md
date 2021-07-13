@@ -6,7 +6,7 @@ The Makefile shipping with this programm requires the _lbm.cpp_ to be in the sam
 
 ### 2. Execution
 _usage_: `./lbm params.dat`
-- `params.dat` is the file to specfy teh parameters for the wind tunnel simulation.
+- `params.dat` is the file to specify the parameters for the wind tunnel simulation.
 
 The results are written into vtk-files in the same folder as the programm.
 
